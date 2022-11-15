@@ -232,6 +232,7 @@ def train(trainData) :
 
 
 def test(testData, device, model, loss_fn) :
+    loss_fn = torch.nn.MSELoss()
  
     # 데이터 하나 당 epoch 씩 학습
     # for i in range(len(testData)):
@@ -281,26 +282,51 @@ def test(testData, device, model, loss_fn) :
     # plt.show()
 
 
-if __name__ == '__main__':
-
+def main() : 
+    os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
     print(torch.cuda.is_available())
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     # device = torch.device("cpu")
     print(device)
 
     # with open('./data/data_prof.pickle', 'rb') as f :
-    with open('./data/listTrainData.pickle', 'rb') as f:
+    # with open('./data/total_3921.pickle', 'rb') as f:
+    with open('./data/total_3921_ver1Frame.pickle', 'rb') as f:
         data = pickle.load(f)
 
-    # print(data.iloc[0][1])
+    # feature = []
+    # label = []
+    # for i in range(len(data)) : #3921
+
+    #     # for datarow in data.iloc[i] : 
+    #     #     print(len(data.iloc[i]))
+    #     #     print(datarow)
+    #     #     sys.exit()
+    #     rawX = [data.iloc[i][j][1] for j in range(len(data.iloc[i]))] #50
+    #     rawY = [data.iloc[i][j][2] for j in range(len(data.iloc[i]))] #50
+    #     feature.append([rawX, rawY])
+    #     label.append([563, 523])         
+       
+
+    # df = pd.DataFrame({'feature' : feature,
+    #                     'label' : label})
+    # print(df.info())
+    # print(df.head())
+    # df.to_pickle('./preprocessing/data/total_3921_ver1Frame.pickle')
+
+
+    # sys.exit()
+
+    # print(data.iloc[0][0][0])
+    # print(data.iloc[0][1][1])
+    # print(data.iloc[0][1][2])
     # print(data.info())
     # print(len(data.iloc[0][1]))
     # print(data.head())
 
-    # sys.exit()
-
-    flag = int(len(data) * 0.7) # 210
-    print(flag)
+    flag = int(len(data) * 0.7) #
+    # print(flag) #2744
+    
     trainData = data.iloc[:flag]
     testData = data.iloc[flag:]
 
@@ -320,27 +346,32 @@ if __name__ == '__main__':
     loss_fn = torch.nn.MSELoss()
     optimiser = torch.optim.Adam(model.parameters(), lr=0.01)
 
-    train(trainData)
+    # train(trainData)
 
-    torch.save(model,  './model/model_200.pt')
+    # torch.save(model,  './model/model_200.pt')
 
-    # model = torch.load('./model/model_200.pt').to(device)
+    model = torch.load('./model/model_200.pt').to(device)
     
     # start = time.time()
     # print(start)
     torch.multiprocessing.set_start_method('spawn')
-    #병렬 프로세싱
-    procs = []    
-    for num in range(0,5):
-        proc = Process(target=test, args=(testData,device,model,loss_fn))
-        procs.append(proc)
-        proc.start()
+    #병렬 프로세싱d
+    # procs = []    
+    # for num in range(0,5):
+    #     proc = Process(target=test, args=(testData,device,model,loss_fn))
+    #     procs.append(proc)
+    #     proc.start()
         
-    for proc in procs:
-        proc.join()
-    # test(testData)
+    # for proc in procs:
+        # proc.join()
+    test(testData,device,model,loss_fn)
     # end = time.time()
 
     # print(end)
     # print(end-start)
 
+
+
+
+if __name__ == '__main__':
+    main()
