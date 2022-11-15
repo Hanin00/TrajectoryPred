@@ -346,9 +346,9 @@ def main() :
     loss_fn = torch.nn.MSELoss()
     optimiser = torch.optim.Adam(model.parameters(), lr=0.01)
 
-    # train(trainData)
+    train(trainData)
 
-    # torch.save(model,  './model/model_200.pt')
+    torch.save(model,  './model/model_200.pt')
 
     model = torch.load('./model/model_200.pt').to(device)
     
