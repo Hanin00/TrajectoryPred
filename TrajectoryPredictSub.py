@@ -1,4 +1,36 @@
+<<<<<<< HEAD
 
+=======
+# ==============================================================
+'''
+    Trajectory Predict 개선 - 22.11.15
+    이하은 hhaeun5419@gmail.com
+
+    1. camera 1에서 포착된 차량의 궤적을 특징으로 하여 궤적 데이터를 학습함
+        이때, 궤적은 10초동안 지나가는 궤적이며, 1초당 5장의 프레임 수를 가짐 
+        없는 경우 데이터 전처리는 다음과 같은 방식으로 진행됨
+    2. camera 1에서 수집한 궤적 데이터를 바탕으로, camera 1이 아닌 2에서 나타나는 차량의 위치를 학습함
+        카메라 간 바라보고 있는 방향이 다르고, 시점이 일치하지 않기 때문에 
+        이를 고려해 LSTM이 예측하는 시점인 Horizontal coefficient를 설정해야한다. 
+        -> n 대에 대해 직접적으로(말고 일일히? 다른 단어) 확인했을 때, 
+        평균적으로(자세한 차량 대 수 확인) 약 5초 정도의 지연이 있었음
+        -> 1초당 5장의 frame을 샘플링 해 해당 차량의 위치를 특징값으로 쓰므로, 
+        25frame 뒤의 차량의 위치를 예측한다. 
+'''
+
+'''
+    코드 
+    GPU 사용 여부 확인
+    1. 전처리
+        - y값(camera 2의 x, y 값)
+    2. 데이터 로드
+    3. 모델 아키텍쳐
+        - 25프레임 뒤의 챠량(x,y 좌표)을 예측하도록 되어 있는지
+    4. 학습 시 hyper parameter 정리
+    5. 데이터가 많지 않으므로 500 epoch 당 모델 저장하도록
+'''
+# ==============================================================
+>>>>>>> 15d0a5f6ee26cd99af53a576156bda11332b69b0
 import pandas as pd
 import numpy as np
 
@@ -25,6 +57,12 @@ import torch.nn as nn
 from torch.autograd import Variable
 import pickle
 
+<<<<<<< HEAD
+=======
+from multiprocessing import Process
+
+
+>>>>>>> 15d0a5f6ee26cd99af53a576156bda11332b69b0
 
 matplotlib.rcParams['font.family'] ='Malgun Gothic'
 matplotlib.rcParams['axes.unicode_minus'] =False
@@ -64,11 +102,14 @@ def loadData(data) :
 
 def series_to_supervised(data, n_in=1, n_out=1, dropnan=True):
     n_vars = 1 if type(data) is list else data.shape[1]
+<<<<<<< HEAD
 
     print(n_vars)
     sys.exit()
 
 
+=======
+>>>>>>> 15d0a5f6ee26cd99af53a576156bda11332b69b0
     df = pd.DataFrame(data)
     cols, names = list(), list()
     # input sequence (t-n, ... t-1)
@@ -109,10 +150,31 @@ class LSTM(nn.Module):
         self.fc = nn.Linear(hidden_dim, output_dim)
 
     def forward(self, x):
+<<<<<<< HEAD
         h0 = torch.zeros(self.num_layers, x.size(1), self.hidden_dim).requires_grad_()
         # Initialize cell state
         c0 = torch.zeros(self.num_layers, x.size(1), self.hidden_dim).requires_grad_()
         out, (hn, cn) = self.lstm(x)
+=======
+        # Initialize hidden state with zeros
+        # fc = nn.Linear(hidden_dim, output_dim)
+
+        h0 = torch.zeros(self.num_layers, x.size(1), self.hidden_dim).requires_grad_()
+
+        # Initialize cell state
+        c0 = torch.zeros(self.num_layers, x.size(1), self.hidden_dim).requires_grad_()
+
+        # We need to detach as we are doing truncated backpropagation through time (BPTT)
+        # If we don't, we'll backprop  all the way to the start even after going through another batch
+
+        # out, (hn, cn) = self.lstm(x, (h0.detach(), c0.detach()))
+        out, (hn, cn) = self.lstm(x)
+
+        # Index hidden state of last time step
+        # out.size() --> 100, 32, 100
+        # out[:, -1, :] --> 100, 100 --> just want last time step hidden states!
+        # out = self.fc(out[:, -1, :])
+>>>>>>> 15d0a5f6ee26cd99af53a576156bda11332b69b0
         out = self.fc(out[:, :])
         # out.size() --> 100, 10
         return out
@@ -127,12 +189,17 @@ def train(trainData) :
     for i in range(1) : 
 
         train_values, train_data, scaler = loadData(trainData.iloc[i])
+<<<<<<< HEAD
         
         train_X_, train_y_ = train_data[:, :-2], train_data[:, -2:]  # 끝에 두 개가  Y의 x,y에 대한 예측값
 
         print(train_X_)
         print(len(train_X_))
         sys.exit()
+=======
+        train_X_, train_y_ = train_data[:, :-2], train_data[:, -2:]  # 끝에 두 개가  Y의 x,y에 대한 예측값
+
+>>>>>>> 15d0a5f6ee26cd99af53a576156bda11332b69b0
 
         train_X = torch.Tensor(train_X_)
         train_y = torch.Tensor(train_y_)
@@ -195,7 +262,13 @@ def train(trainData) :
     # print(x_loss)
 
 
+<<<<<<< HEAD
 def test(testData) :
+=======
+def test(testData, device, model, loss_fn) :
+    loss_fn = torch.nn.MSELoss()
+ 
+>>>>>>> 15d0a5f6ee26cd99af53a576156bda11332b69b0
     # 데이터 하나 당 epoch 씩 학습
     # for i in range(len(testData)):
     for i in range(1):
@@ -219,9 +292,16 @@ def test(testData) :
         # print("x_loss : ",x_loss.item())
         # print("y_loss : ",y_loss.item())
 
+<<<<<<< HEAD
 
         test_predict = model(test_X)
 
+=======
+        start = time.time()
+        test_predict = model(test_X)
+        end = time.time()
+        print("시간 : ", end-start)
+>>>>>>> 15d0a5f6ee26cd99af53a576156bda11332b69b0
 
     # plt.figure(figsize=(24, 8))
     # plt.xlabel('x')
@@ -243,6 +323,7 @@ def test(testData) :
     # plt.show()
 
 
+<<<<<<< HEAD
 # df 중 xyPos 
 def loadData01(data) : 
   dataXY = data['xyPos']
@@ -315,11 +396,16 @@ def train01(trainX, trainY) :
 
 if __name__ == '__main__':
 
+=======
+def main() : 
+    os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
+>>>>>>> 15d0a5f6ee26cd99af53a576156bda11332b69b0
     print(torch.cuda.is_available())
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     # device = torch.device("cpu")
     print(device)
 
+<<<<<<< HEAD
  # 영상 파일명, 차량 id,[] [frame, x, y], [frame, x, y], [frame, x, y], ... , [frame, x, y]]
  # videoName, carId,[[frame, x, y], [frame, x, y], [frame, x, y], ... , [frame, x, y]]
     # with open('./data/rawToData1107_30frame.pickle', 'rb') as f:
@@ -369,17 +455,65 @@ if __name__ == '__main__':
 
 
 
+=======
+    # with open('./data/data_prof.pickle', 'rb') as f :
+    # with open('./data/total_3921.pickle', 'rb') as f:
+    with open('./data/total_3921_ver1Frame.pickle', 'rb') as f:
+        data = pickle.load(f)
+
+    # feature = []
+    # label = []
+    # for i in range(len(data)) : #3921
+
+    #     # for datarow in data.iloc[i] : 
+    #     #     print(len(data.iloc[i]))
+    #     #     print(datarow)
+    #     #     sys.exit()
+    #     rawX = [data.iloc[i][j][1] for j in range(len(data.iloc[i]))] #50
+    #     rawY = [data.iloc[i][j][2] for j in range(len(data.iloc[i]))] #50
+    #     feature.append([rawX, rawY])
+    #     label.append([563, 523])         
+       
+
+    # df = pd.DataFrame({'feature' : feature,
+    #                     'label' : label})
+    # print(df.info())
+    # print(df.head())
+    # df.to_pickle('./preprocessing/data/total_3921_ver1Frame.pickle')
+
+
+    # sys.exit()
+
+    # print(data.iloc[0][0][0])
+    # print(data.iloc[0][1][1])
+    # print(data.iloc[0][1][2])
+    # print(data.info())
+    # print(len(data.iloc[0][1]))
+    # print(data.head())
+
+    flag = int(len(data) * 0.7) #
+    # print(flag) #2744
+    
+    trainData = data.iloc[:flag]
+    testData = data.iloc[flag:]
+>>>>>>> 15d0a5f6ee26cd99af53a576156bda11332b69b0
 
     #INIT - model
     #####################
     num_epochs = 200
     hist = np.zeros(num_epochs)
 
+<<<<<<< HEAD
+=======
+    # Number of steps to unroll
+    # seq_dim = look_back - 1
+>>>>>>> 15d0a5f6ee26cd99af53a576156bda11332b69b0
     input_dim = 10
     hidden_dim = 128
     num_layers = 2
     output_dim = 2
 
+<<<<<<< HEAD
 
     train(trainData)
 
@@ -391,8 +525,41 @@ if __name__ == '__main__':
     # print(start)
 
     # test(testData)
+=======
+    model = LSTM(input_dim=input_dim, hidden_dim=hidden_dim, output_dim=output_dim, num_layers=num_layers)
+    loss_fn = torch.nn.MSELoss()
+    optimiser = torch.optim.Adam(model.parameters(), lr=0.01)
+
+    train(trainData)
+
+    torch.save(model,  './model/model_200.pt')
+
+    model = torch.load('./model/model_200.pt').to(device)
+    
+    # start = time.time()
+    # print(start)
+    torch.multiprocessing.set_start_method('spawn')
+    #병렬 프로세싱d
+    # procs = []    
+    # for num in range(0,5):
+    #     proc = Process(target=test, args=(testData,device,model,loss_fn))
+    #     procs.append(proc)
+    #     proc.start()
+        
+    # for proc in procs:
+        # proc.join()
+    test(testData,device,model,loss_fn)
+>>>>>>> 15d0a5f6ee26cd99af53a576156bda11332b69b0
     # end = time.time()
 
     # print(end)
     # print(end-start)
 
+<<<<<<< HEAD
+=======
+
+
+
+if __name__ == '__main__':
+    main()
+>>>>>>> 15d0a5f6ee26cd99af53a576156bda11332b69b0
