@@ -359,21 +359,6 @@ if __name__ == '__main__':
       trainX, trainY = split_seq(row, window, horizon)
       train01(trainX, trainY)
 
-      
-
-
-
-
-
-      
-
-
-    
-
-
-
-
-
 
     #INIT - model
     #####################
