@@ -63,6 +63,9 @@ pd.set_option('display.max_rows', None)
     2-4는 pickle 파일 내 하나의 id에 대해 이뤄지므로, 이를 반복문을 이용해 함 <- 해당 부분을 병렬 프로세싱을 할 수 있으면 더 좋을 것 같음
     
     5. 해당 데이터를 학습 데이터로 사용
+
+    df 형태 :  # 영상 파일명, 차량 id,[[frame, x, y], [frame, x, y], [frame, x, y], ... , [frame, x, y]]
+
 '''
 def onePickleProcessing(fileName, df, frameNum, defSeqNum) : 
     df_accum = df.copy()
@@ -137,10 +140,10 @@ os.chdir("/workspace")
 print(os.getcwd())
 print(os.listdir())
 
-filePath = 'mnt/hdd_02_4T/10mp4/1025wb10' #60frame
-fileList = os.listdir('mnt/hdd_02_4T/10mp4/1025wb10')
-# filePath = 'mnt/hdd_02_4T/10mp4/1025all617' #30frame
-# fileList = os.listdir('mnt/hdd_02_4T/10mp4/1025all617')
+# filePath = 'mnt/hdd_02_4T/10mp4/1025wb10' #60frame
+# fileList = os.listdir('mnt/hdd_02_4T/10mp4/1025wb10')
+filePath = 'mnt/hdd_02_4T/10mp4/1025all617' #30frame
+fileList = os.listdir('mnt/hdd_02_4T/10mp4/1025all617')
 file_list_py = [file for file in fileList if file.endswith(".pickle")]
 
 
