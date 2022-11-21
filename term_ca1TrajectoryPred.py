@@ -121,7 +121,7 @@ if __name__ == '__main__':
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     # device = torch.device("cpu")
     print(device)
-    sys.exit()
+
     with open('./data/xyposList1120.pickle', 'rb') as f:    
       data = pickle.load(f)
 
@@ -141,29 +141,29 @@ if __name__ == '__main__':
     num_layers = 4
     output_dim = 2
     
-    # model = LSTM(input_dim=input_dim, hidden_dim=hidden_dim, output_dim=output_dim, num_layers=num_layers)
-    # optimiser = torch.optim.Adam(model.parameters(), lr=0.01)
+    model = LSTM(input_dim=input_dim, hidden_dim=hidden_dim, output_dim=output_dim, num_layers=num_layers)
+    optimiser = torch.optim.Adam(model.parameters(), lr=0.01)
     loss_fn = torch.nn.MSELoss()
 
 
     scaler_ = MinMaxScaler(feature_range=(0, 1))
     #train - 2735
-    # trainData = trainData[:30]
-    # for ep in range(num_epochs) : 
-    #     print("epoch : ", ep)
-    #     print("epoch : ", ep)
-    #     print("epoch : ", ep)
-    #     totalLoss = 0
-    #     for idx, row in enumerate(trainData) :
-    #         trainX, trainY = split_seq(row, window, horizon,scaler_)
-    #         model, loss = train(trainX, trainY, model)
-    #         totalLoss+=loss.item()
-    #     print("total Loss mean : ",totalLoss/len(trainData[0]))
+    trainData = trainData[:30]
+    for ep in range(num_epochs) : 
+        print("epoch : ", ep)
+        print("epoch : ", ep)
+        print("epoch : ", ep)
+        totalLoss = 0
+        for idx, row in enumerate(trainData) :
+            trainX, trainY = split_seq(row, window, horizon,scaler_)
+            model, loss = train(trainX, trainY, model)
+            totalLoss+=loss.item()
+        print("total Loss mean : ",totalLoss/len(trainData[0]))
 
     # todo 모델 저장
-    # torch.save(model,  './model/term_car1_model_e200_d40.pt')
+    torch.save(model,  './model/term_car1_model_e200_d30.pt')
 
-    model = torch.load('./model/term_car1_model_e200_d20.pt').to(device)
+    model = torch.load('./model/term_car1_model_e200_d30.pt').to(device)
     totalLoss = 0
     for idx, row in enumerate(testData) :
       testX, testY = split_seq(row, window, horizon,scaler_)  
@@ -173,8 +173,7 @@ if __name__ == '__main__':
     print("totalLoss mean : ", totalLoss/len(testData))
     print("total(testData): ", len(testData))
       
-      
-
+    
 
     
     # start = time.time()
