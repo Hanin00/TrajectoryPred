@@ -23,6 +23,8 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable
 import pickle
+import gc
+import torch
 
 
 matplotlib.rcParams['font.family'] ='Malgun Gothic'
@@ -62,41 +64,49 @@ class LSTM(nn.Module):
         out = self.fc(out[:, -1])
         return out
 
+
+def dataloader () : 
+  return tra
+
+
 def train(trainX, trainY, model, num_epochs) : 
   loss_fn = torch.nn.MSELoss()
   optimiser = torch.optim.Adam(model.parameters(), lr=0.01)
+
   for t in range(num_epochs):
-      train_X = torch.Tensor(trainX).to(device)
-      train_y = torch.Tensor(trainY).to(device)
+    train_X = torch.Tensor(trainX).to(device)
+    train_y = torch.Tensor(trainY).to(device)
 
-      y_train_pred = model(train_X).to(device)
+    y_train_pred = model(train_X).to(device)
 
-      loss = loss_fn(y_train_pred, train_y)
+    loss = loss_fn(y_train_pred, train_y)
 
-      x_loss = loss_fn(y_train_pred[:, 0], train_y[:, 0])
-      y_loss = loss_fn(y_train_pred[:, 1], train_y[:, 1])
+    x_loss = loss_fn(y_train_pred[:, 0], train_y[:, 0])
+    y_loss = loss_fn(y_train_pred[:, 1], train_y[:, 1])
 
-      if t % 10 == 0 and t != 0:
-          print("Epoch ", t, "MSE: ", loss.item())
-          print("x_loss : ", x_loss.item())
-          print("y_loss : ", y_loss.item())
+    if t % 10 == 0 and t != 0:
+        print("Epoch ", t, "MSE: ", loss.item())
+        print("x_loss : ", x_loss.item())
+        print("y_loss : ", y_loss.item())
 
-      hist[t] = loss.item()
+    hist[t] = loss.item()
 
-      # Zero out gradient, else they will accumulate between epochs
-      optimiser.zero_grad()
+    # Zero out gradient, else they will accumulate between epochs
+    optimiser.zero_grad()
 
-      # Backward pass
-      loss.backward()
+    # Backward pass
+    loss.backward()
 
-      # Update parameters
-      optimiser.step()
-      train_predict = model(train_X).to(device)
+    # Update parameters
+    optimiser.step()
+    train_predict = model(train_X).to(device)
 
   return model, loss
 
 def test(testX, testY, model) :
   # 데이터 하나 당 epoch 씩 학습
+  
+  loss_fn = torch.nn.MSELoss()
   test_X = torch.Tensor(testX).to(device)
   test_y = torch.Tensor(testY).to(device)
 
@@ -109,10 +119,12 @@ def test(testX, testY, model) :
 
 
 if __name__ == '__main__':
+    gc.collect()
+    torch.cuda.empty_cache()
 
     print(torch.cuda.is_available())
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    device = torch.device("cpu")
+    # device = torch.device("cpu")
     print(device)
 
     with open('./data/merged_1121.pickle', 'rb') as f:    
@@ -121,7 +133,8 @@ if __name__ == '__main__':
     window = 49 #며칠 전의 값 참고? # 마지막 프레임
     horizon = 1 #얼마나 먼 미래? #마지막 프레임의 위치 예측
 
-    data = data[:50*3000]
+    data = data[:50*300]
+
     num_epochs = 2000
     hist = np.zeros(num_epochs)
 
@@ -140,17 +153,14 @@ if __name__ == '__main__':
     output_dim = 2
     
     model = LSTM(input_dim=input_dim, hidden_dim=hidden_dim, output_dim=output_dim, num_layers=num_layers).to(device)
-    optimiser = torch.optim.Adam(model.parameters(), lr=0.01)
-    loss_fn = torch.nn.MSELoss()
 
     trainX, trainY, scaler = split_seq(trainData, window, horizon)
     model, loss = train(trainX, trainY, model, num_epochs)
-  
 
     # todo 모델 저장
-    torch.save(model,  '/model/term_car1_model_e2000_d.pt')
+    torch.save(model,  './model/term_car1_model_e2000_d1500.pt')
 
-    model = torch.load('/model/term_car1_model_e2000_dtotal.pt').to(device)
+    model = torch.load('./model/term_car1_model_e2000_d1500.pt').to(device)
 
 
     testX, testY, scaler = split_seq(testData, window, horizon)  
