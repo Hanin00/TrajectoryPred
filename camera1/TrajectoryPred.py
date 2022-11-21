@@ -48,10 +48,11 @@ def test(testX, testY, model) :
 # 일반적인 sequential data로 변환 - 한 개 df에 대해 
 # 각각 normalize 하면 denormalize 가 힘들어서 전체 값에서 normalize 함
 def split_seq(seq,window,horizon,scaler_):
-
-    df = pd.DataFrame({"x" : seq[0], "y" : seq[1]})
     # scaler = MinMaxScaler(feature_range=(0, 1))
-    scaled_data = scaler_.fit_transform(df[['x','y']].values)
+    print(seq.info())
+    print(seq.head())
+    sys.exit()
+    scaled_data = scaler_.fit_transform(seq[['x','y']].values)
     df = scaled_data
 
     X=[]; Y=[]
@@ -121,25 +122,18 @@ if __name__ == '__main__':
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     # device = torch.device("cpu")
     print(device)
+    # with open('./data/xyposList1120.pickle', 'rb') as f:    
+    #   data = pickle.load(f)
+    # print(data[:10])
+    # print(data.iloc[0])
+    # sys.exit()
 
-    with open('./data/xyposList1120.pickle', 'rb') as f:    
+    with open('./data/merged_1121.pickle', 'rb') as f:    
       data = pickle.load(f)
-
     print(data[:10])
-
-    totalX = []
-    totalY = []
-    for carIdx in range(len(data)) : 
-      for frameIdx in range(len(data[carIdx][0])) : 
-          totalX.append(data[carIdx][0][frameIdx])
-          totalY.append(data[carIdx][1][frameIdx])
-    df = pd.DataFrame({"x" : totalX,  "y": totalY})
-  
-    with open("data/merged_1121.pickle", "wb") as fw:
-        pickle.dump(df, fw)
-    
+    print(data.iloc[0])
     sys.exit()
-
+    
     window = 49 #며칠 전의 값 참고? # 마지막 프레임
     horizon = 1 #얼마나 먼 미래? #마지막 프레임의 위치 예측
 
@@ -148,8 +142,8 @@ if __name__ == '__main__':
 
     flag = int(len(data) * 0.7) # 
 
-    trainData = data[:flag] # 2744
-    testData = data[flag:] # 1173
+    trainData = data.iloc[:flag] # 2744
+    testData = data.iloc[flag:] # 1173
 
     input_dim = 2
     hidden_dim = 128
@@ -169,10 +163,9 @@ if __name__ == '__main__':
         print("epoch : ", ep)
         print("epoch : ", ep)
         totalLoss = 0
-        for idx, row in enumerate(trainData) :
-            trainX, trainY = split_seq(row, window, horizon,scaler_)
-            model, loss = train(trainX, trainY, model)
-            totalLoss+=loss.item()
+        trainX, trainY = split_seq(trainData, window, horizon,scaler_)
+        model, loss = train(trainX, trainY, model)
+        totalLoss+=loss.item()
         print("total Loss mean : ",totalLoss/len(trainData[0]))
 
     # todo 모델 저장
