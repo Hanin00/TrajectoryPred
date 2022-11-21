@@ -28,42 +28,22 @@ import pickle
 matplotlib.rcParams['font.family'] ='Malgun Gothic'
 matplotlib.rcParams['axes.unicode_minus'] =False
 
-def test(testX, testY, model) :
-    # 데이터 하나 당 epoch 씩 학습
-    for i in range(1):
-        test_X = torch.Tensor(testX)
-        test_y = torch.Tensor(testY)
-
-        #todo - loss 가 이 위치 또는 더 상위에 있어야 하나?
-        test_X = torch.Tensor(test_X).to(device)
-        test_y = torch.Tensor(test_y).to(device)
-        y_test_pred = model(test_X)
-
-        loss = loss_fn(y_test_pred[-1], test_y[-1])
-        print("test loss : ", loss.item())
-        return loss.item()
-        # test_predict = model(test_X)
 
 
 # 일반적인 sequential data로 변환 - 한 개 df에 대해 
 # 각각 normalize 하면 denormalize 가 힘들어서 전체 값에서 normalize 함
-def split_seq(seq,window,horizon,scaler_):
-    # scaler = MinMaxScaler(feature_range=(0, 1))
-    print(seq.info())
-    print(seq.head())
-    sys.exit()
+def split_seq(seq,window,horizon):
+    scaler_ = MinMaxScaler(feature_range=(0, 1))
     scaled_data = scaler_.fit_transform(seq[['x','y']].values)
-    df = scaled_data
 
     X=[]; Y=[]
-    for i in range(len(seq[0])-(window+horizon)+1):
-        x=df[i:(i+window)]
-        y=df[i+window+horizon-1]
-
+    for i in range(len(scaled_data)-(window+horizon)+1):
+        x=scaled_data[i:(i+window)]
+        y=scaled_data[i+window+horizon-1]
         # x=df.iloc[i:(i+window)]
         # y=df.iloc[i+window+horizon-1]
         X.append(x); Y.append(y)
-    return np.array(X), np.array(Y)
+    return np.array(X), np.array(Y), scaler_
 
 class LSTM(nn.Module):
     def __init__(self, input_dim, hidden_dim, num_layers,
@@ -82,62 +62,67 @@ class LSTM(nn.Module):
         out = self.fc(out[:, -1])
         return out
 
-def train(trainX, trainY, model) : 
-  for t in range(1) : 
-  # for t in range(num_epochs): #궤적 데이터 하나에 대한 epoch 
-    trainX = torch.Tensor(trainX)
-    trainY = torch.Tensor(trainY)
-    # print(trainX.shape, trainY.shape) #torch.Size([41, 5, 2]) torch.Size([41, 2])
+def train(trainX, trainY, model, num_epochs) : 
+  loss_fn = torch.nn.MSELoss()
+  optimiser = torch.optim.Adam(model.parameters(), lr=0.01)
+  for t in range(num_epochs):
+      train_X = torch.Tensor(trainX).to(device)
+      train_y = torch.Tensor(trainY).to(device)
 
-    y_train_pred = model(trainX)
+      y_train_pred = model(train_X).to(device)
 
-    loss = loss_fn(y_train_pred, trainY)
+      loss = loss_fn(y_train_pred, train_y)
 
-    # x_loss = loss_fn(y_train_pred[:, 0], trainY[:, 0])
-    # y_loss = loss_fn(y_train_pred[:, 1], trainY[:, 1])
-    # print("Epoch ", t, "MSE: ", loss.item())
-    # if t % 10 == 0 and t != 0:
-    #     print("Epoch ", t, "MSE: ", loss.item())
-        # print("x_loss : ", x_loss.item())
-        # print("y_loss : ", y_loss.item())
+      x_loss = loss_fn(y_train_pred[:, 0], train_y[:, 0])
+      y_loss = loss_fn(y_train_pred[:, 1], train_y[:, 1])
 
-    hist[t] = loss.item()
+      if t % 10 == 0 and t != 0:
+          print("Epoch ", t, "MSE: ", loss.item())
+          print("x_loss : ", x_loss.item())
+          print("y_loss : ", y_loss.item())
 
-    # Zero out gradient, else they will accumulate between epochs
-    optimiser.zero_grad()
+      hist[t] = loss.item()
 
-    # Backward pass
-    loss.backward()
+      # Zero out gradient, else they will accumulate between epochs
+      optimiser.zero_grad()
 
-    # Update parameters
-    optimiser.step()
+      # Backward pass
+      loss.backward()
+
+      # Update parameters
+      optimiser.step()
+      train_predict = model(train_X).to(device)
 
   return model, loss
 
+def test(testX, testY, model) :
+  # 데이터 하나 당 epoch 씩 학습
+  test_X = torch.Tensor(testX).to(device)
+  test_y = torch.Tensor(testY).to(device)
+
+  y_test_pred = model(test_X)
+
+  loss = loss_fn(y_test_pred, test_y)
+  print("test loss : ", loss.item())
+
+  # test_predict = model(test_X)
 
 
 if __name__ == '__main__':
 
     print(torch.cuda.is_available())
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    # device = torch.device("cpu")
+    device = torch.device("cpu")
     print(device)
-    # with open('./data/xyposList1120.pickle', 'rb') as f:    
-    #   data = pickle.load(f)
-    # print(data[:10])
-    # print(data.iloc[0])
-    # sys.exit()
 
     with open('./data/merged_1121.pickle', 'rb') as f:    
       data = pickle.load(f)
-    print(data[:10])
-    print(data.iloc[0])
-    sys.exit()
-    
+
     window = 49 #며칠 전의 값 참고? # 마지막 프레임
     horizon = 1 #얼마나 먼 미래? #마지막 프레임의 위치 예측
 
-    num_epochs = 200
+    data = data[:50*3000]
+    num_epochs = 2000
     hist = np.zeros(num_epochs)
 
     flag = int(len(data) * 0.7) # 
@@ -145,46 +130,34 @@ if __name__ == '__main__':
     trainData = data.iloc[:flag] # 2744
     testData = data.iloc[flag:] # 1173
 
+    print(flag)
+    print(len(trainData))
+    print(len(testData))
+
     input_dim = 2
     hidden_dim = 128
     num_layers = 4
     output_dim = 2
     
-    model = LSTM(input_dim=input_dim, hidden_dim=hidden_dim, output_dim=output_dim, num_layers=num_layers)
+    model = LSTM(input_dim=input_dim, hidden_dim=hidden_dim, output_dim=output_dim, num_layers=num_layers).to(device)
     optimiser = torch.optim.Adam(model.parameters(), lr=0.01)
     loss_fn = torch.nn.MSELoss()
 
-
-    scaler_ = MinMaxScaler(feature_range=(0, 1))
-    #train - 2735
-    trainData = trainData[:30]
-    for ep in range(num_epochs) : 
-        print("epoch : ", ep)
-        print("epoch : ", ep)
-        print("epoch : ", ep)
-        totalLoss = 0
-        trainX, trainY = split_seq(trainData, window, horizon,scaler_)
-        model, loss = train(trainX, trainY, model)
-        totalLoss+=loss.item()
-        print("total Loss mean : ",totalLoss/len(trainData[0]))
+    trainX, trainY, scaler = split_seq(trainData, window, horizon)
+    model, loss = train(trainX, trainY, model, num_epochs)
+  
 
     # todo 모델 저장
-    torch.save(model,  './model/term_car1_model_e200_d30.pt')
+    torch.save(model,  '/model/term_car1_model_e2000_d.pt')
 
-    model = torch.load('./model/term_car1_model_e200_d30.pt').to(device)
-    totalLoss = 0
-    for idx, row in enumerate(testData) :
-      testX, testY = split_seq(row, window, horizon,scaler_)  
-      totalLoss += (test(testX, testY, model))
-    
-    print("totalLoss mean : ", totalLoss/len(testData))
-    print("totalLoss mean : ", totalLoss/len(testData))
-    print("total(testData): ", len(testData))
-      
-    
+    model = torch.load('/model/term_car1_model_e2000_dtotal.pt').to(device)
 
+
+    testX, testY, scaler = split_seq(testData, window, horizon)  
+    test(testX, testY, model)
     
     # start = time.time()
+
     # print(start)
 
     # test(testData)
