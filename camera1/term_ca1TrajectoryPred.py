@@ -137,9 +137,7 @@ if __name__ == '__main__':
   
     with open("data/merged_1121.pickle", "wb") as fw:
         pickle.dump(df, fw)
-    
-    sys.exit()
-
+   
     window = 49 #며칠 전의 값 참고? # 마지막 프레임
     horizon = 1 #얼마나 먼 미래? #마지막 프레임의 위치 예측
 

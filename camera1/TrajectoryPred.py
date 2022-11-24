@@ -1,4 +1,11 @@
 ## 카메라 한 대, 차량 전체 차량에 대해 9초 후 10초때의 위치 예측
+'''
+  총 50frame 중 49frame을 가지고 학습, 1프레임 뒤 예측
+  카메라 한 대, 차량 전체 차량에 대해 9초 후 10초때의 위치 예측
+  -> 
+'''
+
+
 import pandas as pd
 import numpy as np
 
@@ -40,12 +47,18 @@ def split_seq(seq,window,horizon):
 
     X=[]; Y=[]
     for i in range(len(scaled_data)-(window+horizon)+1):
+      try : 
+        # x=scaled_data[49*i:(i+window)]
+        # y=scaled_data[49*i+window+horizon-1]
+        
         x=scaled_data[i:(i+window)]
         y=scaled_data[i+window+horizon-1]
-        # x=df.iloc[i:(i+window)]
-        # y=df.iloc[i+window+horizon-1]
+
         X.append(x); Y.append(y)
+      except : 
+        break
     return np.array(X), np.array(Y), scaler_
+    # return X, Y, scaler_
 
 class LSTM(nn.Module):
     def __init__(self, input_dim, hidden_dim, num_layers,
@@ -74,11 +87,14 @@ def train(trainX, trainY, model, num_epochs) :
   optimiser = torch.optim.Adam(model.parameters(), lr=0.01)
 
   for t in range(num_epochs):
+    # print(np.array(trainX))
+    # print(np.array(trainX))
+    # sys.exit()
     train_X = torch.Tensor(trainX).to(device)
     train_y = torch.Tensor(trainY).to(device)
 
     y_train_pred = model(train_X).to(device)
-
+    
     loss = loss_fn(y_train_pred, train_y)
 
     x_loss = loss_fn(y_train_pred[:, 0], train_y[:, 0])
@@ -119,59 +135,61 @@ def test(testX, testY, model) :
 
 
 if __name__ == '__main__':
-    gc.collect()
-    torch.cuda.empty_cache()
+  gc.collect()
+  torch.cuda.empty_cache()
 
-    print(torch.cuda.is_available())
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    # device = torch.device("cpu")
-    print(device)
+  print(torch.cuda.is_available())
+  device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+  # device = torch.device("cpu")
+  print(device)
 
-    with open('./data/merged_1121.pickle', 'rb') as f:    
-      data = pickle.load(f)
+  with open('./camera1/data/merged_1121.pickle', 'rb') as f:    
+    data = pickle.load(f)
 
-    window = 49 #며칠 전의 값 참고? # 마지막 프레임
-    horizon = 1 #얼마나 먼 미래? #마지막 프레임의 위치 예측
+  window = 49 #며칠 전의 값 참고? # 마지막 프레임
+  horizon = 1 #얼마나 먼 미래? #마지막 프레임의 위치 예측
 
-    data = data[:50*300]
+  data = data[:50*400]
 
-    num_epochs = 2000
-    hist = np.zeros(num_epochs)
+  num_epochs = 2000
+  hist = np.zeros(num_epochs)
 
-    flag = int(len(data) * 0.7) # 
+  flag = int(len(data) * 0.7) # 
 
-    trainData = data.iloc[:flag] # 2744
-    testData = data.iloc[flag:] # 1173
-
-    print(flag)
-    print(len(trainData))
-    print(len(testData))
-
-    input_dim = 2
-    hidden_dim = 128
-    num_layers = 4
-    output_dim = 2
-    
-    model = LSTM(input_dim=input_dim, hidden_dim=hidden_dim, output_dim=output_dim, num_layers=num_layers).to(device)
-
-    trainX, trainY, scaler = split_seq(trainData, window, horizon)
-    model, loss = train(trainX, trainY, model, num_epochs)
-
-    # todo 모델 저장
-    torch.save(model,  './model/term_car1_model_e2000_d1500.pt')
-
-    model = torch.load('./model/term_car1_model_e2000_d1500.pt').to(device)
+  trainData = data.iloc[:flag] # 2744
+  testData = data.iloc[flag:] # 1173
 
 
-    testX, testY, scaler = split_seq(testData, window, horizon)  
-    test(testX, testY, model)
-    
-    # start = time.time()
+  print(len(trainData))
+  print(len(testData))
 
-    # print(start)
+  input_dim = 2
+  hidden_dim = 128
+  num_layers = 4
+  output_dim = 2
+  
+  model = LSTM(input_dim=input_dim, hidden_dim=hidden_dim, output_dim=output_dim, num_layers=num_layers).to(device)
 
-    # test(testData)
-    # end = time.time()
+  trainX, trainY, scaler = split_seq(trainData, window, horizon)
 
-    # print(end)
-    # print(end-start)
+
+  model, loss = train(trainX, trainY, model, num_epochs)
+
+  # todo 모델 저장
+  torch.save(model,  './model/term_car1_model_e2000_d400.pt')
+
+  model = torch.load('./model/term_car1_model_e2000_d400.pt').to(device)
+
+
+  testX, testY, scaler = split_seq(testData, window, horizon)  
+  test(testX, testY, model)
+  
+  # start = time.time()
+
+  # print(start)
+
+  # test(testData)
+  # end = time.time()
+
+  # print(end)
+  # print(end-start)
